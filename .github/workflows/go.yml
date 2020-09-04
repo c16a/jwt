@@ -27,6 +27,9 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
+      - name: Run cover profile
+        run: |
+          go test -coverprofile=coverage.txt -v ./...
       - name: Run CodeCov
         uses: codecov/codecov-action@v1
 
