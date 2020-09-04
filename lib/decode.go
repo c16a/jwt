@@ -3,13 +3,16 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/color"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
-func ParseToken(tokenToBeDecoded string, hmacSecret string) {
+func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string) error {
 	tokenString := tokenToBeDecoded
 
 	// Parse takes the token string and a function for looking up the key. The latter is especially
@@ -19,20 +22,38 @@ func ParseToken(tokenToBeDecoded string, hmacSecret string) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
+			PrintAlgorithm(token)
+			PrintTokenDetails(token)
+
+			hmacSampleSecret := []byte(hmacSecret)
+			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+			return hmacSampleSecret, nil
 		}
 
-		PrintAlgorithm(token)
-		PrintTokenDetails(token)
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
+			PrintAlgorithm(token)
+			PrintTokenDetails(token)
+			
+			if len(publicKeyFile) <= 0 {
+				return nil, errors.New("public key is mandatory for RSA decoding")
+			}
+			_, err := os.Stat(publicKeyFile)
+			if os.IsNotExist(err) {
+				return nil, errors.New("could not find public key file")
+			}
+			publicKeyBytes, err := ioutil.ReadFile(publicKeyFile)
+			if err != nil {
+				return nil, errors.New("could not read public key file")
+			}
+			return jwt.ParseRSAPublicKeyFromPEM(publicKeyBytes)
+		}
 
-		hmacSampleSecret := []byte(hmacSecret)
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return hmacSampleSecret, nil
+		return nil, errors.New("unknown signing algorithm used")
 	})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
@@ -44,6 +65,8 @@ func ParseToken(tokenToBeDecoded string, hmacSecret string) {
 	} else {
 		fmt.Println(err)
 	}
+
+	return nil
 }
 
 func PrintAlgorithm(token *jwt.Token) {
