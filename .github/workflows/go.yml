@@ -1,0 +1,45 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: |
+        go mod tidy
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Build Linux amd64
+      run: GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o jwt github.com/c16a/jwt
+    
+    - name: Build Linux arm64
+      run: GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o jwt github.com/c16a/jwt
+      
+    - name: Build Windows amd64
+      run: GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o jwt github.com/c16a/jwt
+      
+    - name: Build Mac amd64
+      run: GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o jwt github.com/c16a/jwt
+    
+    - name: Build Mac arm64
+      run: GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o jwt github.com/c16a/jwt
