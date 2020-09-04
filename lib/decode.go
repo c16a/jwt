@@ -12,11 +12,9 @@ import (
 	"time"
 )
 
-/**
-	ParseToken parses a JWT with support for HMAC and RSA
-	hmacSecret - optional param if token is signed with HMAC
-	publicKeyFile - mandatory param if token is signed with RSA
- */
+//	ParseToken parses a JWT with support for HMAC and RSA
+//	hmacSecret - optional param if token is signed with HMAC
+//	publicKeyFile - mandatory param if token is signed with RSA
 func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string) error {
 	tokenString := tokenToBeDecoded
 
