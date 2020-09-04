@@ -40,6 +40,4 @@ jobs:
       
     - name: Build Mac amd64
       run: GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o jwt github.com/c16a/jwt
-    
-    - name: Build Mac arm64
-      run: GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o jwt github.com/c16a/jwt
+      
