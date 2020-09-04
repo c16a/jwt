@@ -34,7 +34,7 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string) error {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
 			PrintAlgorithm(token)
 			PrintTokenDetails(token)
-			
+
 			if len(publicKeyFile) <= 0 {
 				return nil, errors.New("public key is mandatory for RSA decoding")
 			}
