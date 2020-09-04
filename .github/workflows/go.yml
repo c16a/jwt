@@ -20,6 +20,16 @@ jobs:
       with:
         command: monitor
 
+  codeCoverage:
+    name: Code Coverage
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run CodeCov
+        uses: codecov/codecov-action@v1
+
   buildLinux:
     name: Build Linux
     needs: security
