@@ -27,8 +27,8 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer)
 		// Don't forget to validate the alg is what you expect:
 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-			PrintAlgorithm(token, w)
-			PrintTokenDetails(token, w)
+			printAlgorithm(token, w)
+			printTokenDetails(token, w)
 
 			hmacSampleSecret := []byte(hmacSecret)
 			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
@@ -36,8 +36,8 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer)
 		}
 
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
-			PrintAlgorithm(token, w)
-			PrintTokenDetails(token, w)
+			printAlgorithm(token, w)
+			printTokenDetails(token, w)
 
 			if len(publicKeyFile) <= 0 {
 				return nil, errors.New("public key is mandatory for RSA decoding")
@@ -61,7 +61,7 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer)
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		jsonString, err := PrettyJson(claims)
+		jsonString, err := prettyJson(claims)
 		if err != nil {
 			panic(err)
 		}
@@ -73,12 +73,12 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer)
 	return nil
 }
 
-func PrintAlgorithm(token *jwt.Token, w io.Writer) {
+func printAlgorithm(token *jwt.Token, w io.Writer) {
 	c := color.New(color.FgGreen).Add(color.Bold)
 	fmt.Fprintf(w, "\nSigned with: %s\n", c.Sprintf(token.Method.Alg()))
 }
 
-func PrintTokenDetails(token *jwt.Token, w io.Writer) {
+func printTokenDetails(token *jwt.Token, w io.Writer) {
 
 	var issuedAt int64
 	var expiresAt int64
@@ -114,7 +114,7 @@ const (
 	indent = "    "
 )
 
-func PrettyJson(data interface{}) (string, error) {
+func prettyJson(data interface{}) (string, error) {
 	buffer := new(bytes.Buffer)
 	encoder := json.NewEncoder(buffer)
 	encoder.SetIndent(empty, indent)
