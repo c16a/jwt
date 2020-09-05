@@ -13,9 +13,9 @@ import (
 	"time"
 )
 
-//	ParseToken parses a JWT with support for HMAC and RSA
-//	hmacSecret - optional param if token is signed with HMAC
-//	publicKeyFile - mandatory param if token is signed with RSA
+//ParseToken parses a JWT with support for HMAC and RSA
+//hmacSecret - optional param if token is signed with HMAC
+//publicKeyFile - mandatory param if token is signed with RSA
 func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer) error {
 	tokenString := tokenToBeDecoded
 
@@ -61,7 +61,7 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer)
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		jsonString, err := prettyJson(claims)
+		jsonString, err := prettyJSON(claims)
 		if err != nil {
 			panic(err)
 		}
@@ -114,7 +114,7 @@ const (
 	indent = "    "
 )
 
-func prettyJson(data interface{}) (string, error) {
+func prettyJSON(data interface{}) (string, error) {
 	buffer := new(bytes.Buffer)
 	encoder := json.NewEncoder(buffer)
 	encoder.SetIndent(empty, indent)
