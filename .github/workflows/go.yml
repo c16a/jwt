@@ -7,17 +7,42 @@ on:
     branches: [ master ]
 
 jobs:
-  buildLinux:
-    name: Build Linux
+  security:
+    name: Security Scan
     runs-on: ubuntu-latest
     steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Run Snyk
+      uses: snyk/actions/golang@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SYNK_TOKEN }}
+      with:
+        command: monitor
 
+  codeCoverage:
+    name: Code Coverage
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run cover profile
+        run: |
+          go test -coverprofile=coverage.txt -v ./...
+      - name: Run CodeCov
+        uses: codecov/codecov-action@v1
+
+  buildLinux:
+    name: Build Linux
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
         go-version: ^1.15
       id: go
-
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
@@ -44,67 +69,67 @@ jobs:
 
   buildWindows:
     name: Build Windows
+    needs: security
     runs-on: windows-latest
     steps:
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+      id: go
 
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v2
-        with:
-          go-version: ^1.15
-        id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+    - name: Get dependencies
+      run: |
+        go mod tidy
 
-      - name: Get dependencies
-        run: |
-          go mod tidy
+    - name: Test
+      run: go test -v ./...
 
-      - name: Test
-        run: go test -v ./...
+    - name: Build Windows amd64
+      run: |
+        set GOOS=windows
+        set GOARCH=amd64
+        go build -ldflags="-s -w" -o jwt-windows-amd64.exe github.com/c16a/jwt
 
-      - name: Build Windows amd64
-        run: |
-          set GOOS=windows
-          set GOARCH=amd64
-          go build -ldflags="-s -w" -o jwt-windows-amd64.exe github.com/c16a/jwt
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: jwt-windows-binaries
-          path: |
-            jwt-windows-amd64.exe
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: jwt-windows-binaries
+        path: |
+          jwt-windows-amd64.exe
 
   buildMac:
     name: Build Mac
+    needs: security
     runs-on: macos-latest
     steps:
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+      id: go
 
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v2
-        with:
-          go-version: ^1.15
-        id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+    - name: Get dependencies
+      run: |
+        go mod tidy
 
-      - name: Get dependencies
-        run: |
-          go mod tidy
+    - name: Test
+      run: go test -v ./...
 
-      - name: Test
-        run: go test -v ./...
+    - name: Build Mac amd64
+      run: GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o jwt-mac-amd64 github.com/c16a/jwt
 
-      - name: Build Mac amd64
-        run: GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o jwt-mac-amd64 github.com/c16a/jwt
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: jwt-mac-binaries
-          path: |
-            jwt-mac-amd64
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: jwt-mac-binaries
+        path: |
+          jwt-mac-amd64
 
 

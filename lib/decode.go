@@ -3,13 +3,20 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/color"
+	"io"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
-func ParseToken(tokenToBeDecoded string, hmacSecret string) {
+//ParseToken parses a JWT with support for HMAC and RSA
+//hmacSecret - optional param if token is signed with HMAC
+//publicKeyFile - mandatory param if token is signed with RSA
+func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer) error {
 	tokenString := tokenToBeDecoded
 
 	// Parse takes the token string and a function for looking up the key. The latter is especially
@@ -19,39 +26,59 @@ func ParseToken(tokenToBeDecoded string, hmacSecret string) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
+			printAlgorithm(token, w)
+			printTokenDetails(token, w)
+
+			hmacSampleSecret := []byte(hmacSecret)
+			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+			return hmacSampleSecret, nil
 		}
 
-		PrintAlgorithm(token)
-		PrintTokenDetails(token)
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
+			printAlgorithm(token, w)
+			printTokenDetails(token, w)
 
-		hmacSampleSecret := []byte(hmacSecret)
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return hmacSampleSecret, nil
+			if len(publicKeyFile) <= 0 {
+				return nil, errors.New("public key is mandatory for RSA decoding")
+			}
+			_, err := os.Stat(publicKeyFile)
+			if os.IsNotExist(err) {
+				return nil, errors.New("could not find public key file")
+			}
+			publicKeyBytes, err := ioutil.ReadFile(publicKeyFile)
+			if err != nil {
+				return nil, errors.New("could not read public key file")
+			}
+			return jwt.ParseRSAPublicKeyFromPEM(publicKeyBytes)
+		}
+
+		return nil, errors.New("unknown signing algorithm used")
 	})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		jsonString, err := PrettyJson(claims)
+		jsonString, err := prettyJSON(claims)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(jsonString)
+		fmt.Fprintln(w, jsonString)
 	} else {
-		fmt.Println(err)
+		fmt.Fprintln(w, err)
 	}
+
+	return nil
 }
 
-func PrintAlgorithm(token *jwt.Token) {
+func printAlgorithm(token *jwt.Token, w io.Writer) {
 	c := color.New(color.FgGreen).Add(color.Bold)
-	fmt.Printf("\nSigned with: %s\n", c.Sprintf(token.Method.Alg()))
+	fmt.Fprintf(w, "\nSigned with: %s\n", c.Sprintf(token.Method.Alg()))
 }
 
-func PrintTokenDetails(token *jwt.Token) {
+func printTokenDetails(token *jwt.Token, w io.Writer) {
 
 	var issuedAt int64
 	var expiresAt int64
@@ -73,8 +100,8 @@ func PrintTokenDetails(token *jwt.Token) {
 			}
 		}
 	}
-	fmt.Printf("Issued at: %s\n", c.Sprintf(convertTimestampToLocalString(issuedAt)))
-	fmt.Printf("Expires at: %s\n", c.Sprintf(convertTimestampToLocalString(expiresAt)))
+	fmt.Fprintf(w, "Issued at: %s\n", c.Sprintf(convertTimestampToLocalString(issuedAt)))
+	fmt.Fprintf(w, "Expires at: %s\n", c.Sprintf(convertTimestampToLocalString(expiresAt)))
 }
 
 func convertTimestampToLocalString(t int64) string {
@@ -87,7 +114,7 @@ const (
 	indent = "    "
 )
 
-func PrettyJson(data interface{}) (string, error) {
+func prettyJSON(data interface{}) (string, error) {
 	buffer := new(bytes.Buffer)
 	encoder := json.NewEncoder(buffer)
 	encoder.SetIndent(empty, indent)
