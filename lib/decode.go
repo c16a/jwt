@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/color"
+	"io"
 	"io/ioutil"
 	"os"
 	"time"
@@ -15,7 +16,7 @@ import (
 //	ParseToken parses a JWT with support for HMAC and RSA
 //	hmacSecret - optional param if token is signed with HMAC
 //	publicKeyFile - mandatory param if token is signed with RSA
-func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string) error {
+func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string, w io.Writer) error {
 	tokenString := tokenToBeDecoded
 
 	// Parse takes the token string and a function for looking up the key. The latter is especially
@@ -26,8 +27,8 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string) error {
 		// Don't forget to validate the alg is what you expect:
 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-			PrintAlgorithm(token)
-			PrintTokenDetails(token)
+			PrintAlgorithm(token, w)
+			PrintTokenDetails(token, w)
 
 			hmacSampleSecret := []byte(hmacSecret)
 			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
@@ -35,8 +36,8 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string) error {
 		}
 
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); ok {
-			PrintAlgorithm(token)
-			PrintTokenDetails(token)
+			PrintAlgorithm(token, w)
+			PrintTokenDetails(token, w)
 
 			if len(publicKeyFile) <= 0 {
 				return nil, errors.New("public key is mandatory for RSA decoding")
@@ -64,20 +65,20 @@ func ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile string) error {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(jsonString)
+		fmt.Fprintln(w, jsonString)
 	} else {
-		fmt.Println(err)
+		fmt.Fprintln(w, err)
 	}
 
 	return nil
 }
 
-func PrintAlgorithm(token *jwt.Token) {
+func PrintAlgorithm(token *jwt.Token, w io.Writer) {
 	c := color.New(color.FgGreen).Add(color.Bold)
-	fmt.Printf("\nSigned with: %s\n", c.Sprintf(token.Method.Alg()))
+	fmt.Fprintf(w, "\nSigned with: %s\n", c.Sprintf(token.Method.Alg()))
 }
 
-func PrintTokenDetails(token *jwt.Token) {
+func PrintTokenDetails(token *jwt.Token, w io.Writer) {
 
 	var issuedAt int64
 	var expiresAt int64
@@ -99,8 +100,8 @@ func PrintTokenDetails(token *jwt.Token) {
 			}
 		}
 	}
-	fmt.Printf("Issued at: %s\n", c.Sprintf(convertTimestampToLocalString(issuedAt)))
-	fmt.Printf("Expires at: %s\n", c.Sprintf(convertTimestampToLocalString(expiresAt)))
+	fmt.Fprintf(w, "Issued at: %s\n", c.Sprintf(convertTimestampToLocalString(issuedAt)))
+	fmt.Fprintf(w, "Expires at: %s\n", c.Sprintf(convertTimestampToLocalString(expiresAt)))
 }
 
 func convertTimestampToLocalString(t int64) string {

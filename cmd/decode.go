@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/c16a/jwt/lib"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var tokenToBeDecoded string
@@ -25,6 +26,6 @@ var decodeCommand = &cobra.Command{
 	Use: "decode",
 	Short: "Decodes a JWT token",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return lib.ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile)
+		return lib.ParseToken(tokenToBeDecoded, hmacSecret, publicKeyFile, os.Stdout)
 	},
 }
